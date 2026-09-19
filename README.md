@@ -2,6 +2,12 @@
 
 Aplicacao academica em Java que evolui o motor de priorizacao de manejo de vegetacao da Sprint 02 com persistencia em Oracle Database por JDBC puro. O sistema cadastra e consulta equipes e trechos, registra intervencoes, executa as regras operacionais existentes e mantem o historico dos relatorios.
 
+# Integrantes:
+João Victor Alves de Abreu - RM: 564946; 
+Luiz Henrique Barbosa Dias - RM: 562399; 
+Rodrigo Kenshin Viana Matayoshi - RM: 564026
+
+
 ## Visao Geral
 
 A Sprint 03 substitui a massa simulada do fluxo principal por dados persistidos no Oracle, sem trocar a arquitetura orientada a objetos criada anteriormente. JDBC permanece explicito: conexoes, `PreparedStatement`, `ResultSet`, mapeamentos e fechamento de recursos podem ser demonstrados diretamente.
