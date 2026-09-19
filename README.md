@@ -2,10 +2,13 @@
 
 Aplicacao academica em Java que evolui o motor de priorizacao de manejo de vegetacao da Sprint 02 com persistencia em Oracle Database por JDBC puro. O sistema cadastra e consulta equipes e trechos, registra intervencoes, executa as regras operacionais existentes e mantem o historico dos relatorios.
 
-# Integrantes:
-João Victor Alves de Abreu - RM: 564946; 
-Luiz Henrique Barbosa Dias - RM: 562399; 
-Rodrigo Kenshin Viana Matayoshi - RM: 564026
+## Integrantes
+
+| Nome | RM |
+|---|---|
+| Joao Victor Alves de Abreu | 564946 |
+| Luiz Henrique Barbosa Dias | 562399 |
+| Rodrigo Kenshin Viana Matayoshi | 564026 |
 
 
 ## Visao Geral
@@ -327,11 +330,3 @@ Areas sensiveis recebem o adicional operacional de 10 cm. Trechos IoT fornecem a
 - polimorfismo na execucao das intervencoes;
 - encapsulamento e validacao de estado;
 - motor de regras isolado da persistencia.
-
-## Integrantes
-
-| Nome | RM |
-|---|---|
-| Joao Victor Alves de Abreu | 564946 |
-| Luiz Henrique Barbosa Dias | 562399 |
-| Rodrigo Kenshin Viana Matayoshi | 564026 |
