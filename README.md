@@ -10,7 +10,6 @@ O sistema simula a análise de trechos rodoviários, identifica o comportamento 
 |---|---|
 | João Victor Alves de Abreu | 564946 |
 | Luiz Henrique Barbosa Dias | 562399 |
-| Nathan Lopes Silva | 563507 |
 | Rodrigo Kenshin Viana Matayoshi | 564026 |
 
 ## Objetivo da Sprint
