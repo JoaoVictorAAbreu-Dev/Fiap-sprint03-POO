@@ -1,150 +1,331 @@
-# Motiva Sprint 02 - Motor de Regras para Priorização de Roçada
+# MOTIVA - Sprint 03
 
-Projeto desenvolvido para a Sprint 02 da disciplina de Programação Orientada a Objetos, com foco na construção de um sistema de monitoramento e priorização de roçada de vegetação em rodovias.
+Aplicacao academica em Java que evolui o motor de priorizacao de manejo de vegetacao da Sprint 02 com persistencia em Oracle Database por JDBC puro. O sistema cadastra e consulta equipes e trechos, registra intervencoes, executa as regras operacionais existentes e mantem o historico dos relatorios.
 
-O sistema simula a análise de trechos rodoviários, identifica o comportamento de crescimento da vegetação e gera automaticamente um relatório de prioridade operacional, indicando se o trecho precisa de roçada mecanizada, roçada manual, pulverização preventiva ou nenhuma intervenção imediata.
+## Visao Geral
+
+A Sprint 03 substitui a massa simulada do fluxo principal por dados persistidos no Oracle, sem trocar a arquitetura orientada a objetos criada anteriormente. JDBC permanece explicito: conexoes, `PreparedStatement`, `ResultSet`, mapeamentos e fechamento de recursos podem ser demonstrados diretamente.
+
+## Evolucao da Sprint 02
+
+A Sprint 02 continua presente e funcional:
+
+- `TrechoRodovia` preserva encapsulamento e validacoes;
+- `TrechoMonitoradoIoT` continua herdando de `TrechoRodovia` e implementando `MonitoravelViaIoT`;
+- `IntervencaoOperacional` permanece abstrata, com `RocadaManual`, `RocadaMecanizada` e `Pulverizacao` como implementacoes polimorficas;
+- `MotorRegrasPrioridade` continua sendo a unica fonte das regras de classificacao;
+- `ResultadoPrioridade` e `RelatorioPrioridade` continuam representando e imprimindo o resultado operacional.
+
+Os novos records existem somente na fronteira de persistencia. Nenhuma classe do dominio depende de JDBC ou de DAO.
+
+## Objetivo
+
+- executar CRUD completo das quatro entidades da Sprint 03;
+- reconstruir trechos comuns e IoT a partir do banco;
+- analisar os trechos persistidos com o motor da Sprint 02;
+- gravar o resumo de cada relatorio;
+- gravar as intervencoes planejadas, vinculadas a trechos e equipes;
+- demonstrar o fluxo completo no `Main`.
+
+## Tecnologias
+
+- Java 17 ou superior;
+- Oracle Database 12c ou superior para as colunas `IDENTITY` utilizadas nos scripts;
+- JDBC puro (`java.sql`);
+- Oracle JDBC Driver `ojdbc17.jar`;
+- IntelliJ IDEA ou terminal.
+
+Nao sao utilizados Spring, JPA, Hibernate, ORM, Maven ou Gradle.
+
+## Arquitetura
+
+```text
+Oracle
+  -> ConexaoBD
+  -> DAOs
+  -> records de persistencia
+  -> dominio da Sprint 02
+  -> MotorRegrasPrioridade
+  -> ResultadoPrioridade[]
+  -> RelatorioPrioridade (console)
+  -> GeradorRelatorio
+  -> historico e intervencoes no Oracle
+```
+
+`GeradorRelatorio` orquestra o caso de uso. O relatorio e as intervencoes geradas na mesma analise usam DAOs presos a uma unica conexao transacional: uma falha provoca `rollback` do conjunto sem reconexao silenciosa.
+
+## Estrutura de Pacotes
+
+```text
+motiva-sprint02-poo/
+|-- config/
+|   `-- db.properties.example
+|-- lib/
+|   `-- README.md
+|-- sql/
+|   |-- seu-script-criacao.sql
+|   `-- seu-script-dados.sql
+`-- src/br/com/motiva/
+    |-- Main.java
+    |-- dao/
+    |   |-- EquipeManutencaoDAO.java
+    |   |-- IntervencaoOperacionalDAO.java
+    |   |-- RelatorioPrioridadeDAO.java
+    |   `-- TrechoRodoviaDAO.java
+    |-- db/
+    |   `-- ConexaoBD.java
+    |-- intervencao/
+    |-- iot/
+    |-- model/
+    |   `-- persistence/
+    |       |-- EquipeManutencaoRecord.java
+    |       |-- IntervencaoOperacionalRecord.java
+    |       |-- RelatorioPrioridadeRecord.java
+    |       `-- TrechoRodoviaRecord.java
+    |-- service/
+    |   |-- GeradorRelatorio.java
+    |   |-- MotorRegrasPrioridade.java
+    |   |-- RelatorioPrioridade.java
+    |   `-- ResultadoPrioridade.java
+    `-- util/
+```
+
+## Modelo de Dados
+
+```mermaid
+erDiagram
+    TB_EQUIPE_MANUTENCAO ||--o{ TB_INTERVENCAO_OPERACIONAL : executa
+    TB_TRECHO_RODOVIA ||--o{ TB_INTERVENCAO_OPERACIONAL : recebe
+
+    TB_EQUIPE_MANUTENCAO {
+        NUMBER ID_EQUIPE PK
+        VARCHAR2 NOME UK
+        VARCHAR2 ESPECIALIDADE
+        CHAR ATIVA
+    }
+    TB_TRECHO_RODOVIA {
+        NUMBER ID_TRECHO PK
+        NUMBER QUILOMETRO
+        VARCHAR2 SENTIDO
+        NUMBER ALTURA_VEGETACAO_CM
+        VARCHAR2 TIPO_CRESCIMENTO
+        CHAR AREA_SENSIVEL
+        CHAR MONITORADO_IOT
+        VARCHAR2 CODIGO_SENSOR UK
+    }
+    TB_INTERVENCAO_OPERACIONAL {
+        NUMBER ID_INTERVENCAO PK
+        NUMBER ID_TRECHO FK
+        NUMBER ID_EQUIPE FK
+        VARCHAR2 TIPO_INTERVENCAO
+        VARCHAR2 NIVEL_PRIORIDADE
+        NUMBER ALTURA_PROJETADA_CM
+        TIMESTAMP DATA_INTERVENCAO
+        VARCHAR2 STATUS
+    }
+    TB_RELATORIO_PRIORIDADE {
+        NUMBER ID_RELATORIO PK
+        TIMESTAMP DATA_GERACAO
+        NUMBER QT_NORMAL
+        NUMBER QT_BAIXA
+        NUMBER QT_MEDIA
+        NUMBER QT_ALTA
+        NUMBER QT_CRITICA
+        VARCHAR2 RESUMO
+    }
+```
+
+## Tabelas Oracle
+
+- `TB_EQUIPE_MANUTENCAO`: equipes, especialidades e estado ativo/inativo;
+- `TB_TRECHO_RODOVIA`: dados do trecho e discriminador para reconstruir `TrechoMonitoradoIoT`;
+- `TB_INTERVENCAO_OPERACIONAL`: historico operacional com FKs para equipe e trecho;
+- `TB_RELATORIO_PRIORIDADE`: contagens e resumo de cada execucao do motor.
+
+As constraints validam valores nao negativos, enums do dominio, flags `S/N`, coerencia entre IoT e codigo do sensor e contagens do relatorio. As FKs nao usam exclusao em cascata: dados relacionados nao sao removidos silenciosamente.
+
+## Relacionamentos
+
+Uma equipe pode executar varias intervencoes e um trecho pode receber varias intervencoes. O historico de relatorios representa uma execucao agregada do motor e nao substitui as intervencoes individuais.
+
+## Configuracao do Oracle
+
+Defina uma URL Thin no formato:
+
+```text
+jdbc:oracle:thin:@//host:porta/servico
+```
+
+Os scripts usam `GENERATED BY DEFAULT AS IDENTITY`, disponivel no Oracle 12c+. A versao do ambiente FIAP deve ser confirmada antes da apresentacao. Em uma instalacao anterior ao 12c, substitua as colunas identity por sequences e use `NEXTVAL` nos inserts; essa alternativa nao foi declarada como testada neste repositorio.
+
+## Configuracao do ojdbc17
+
+O driver nao e distribuido neste repositorio. Obtenha o `ojdbc17.jar` de uma fonte Oracle autorizada e copie para:
+
+```text
+motiva-sprint02-poo/lib/ojdbc17.jar
+```
+
+O modulo IntelliJ ja referencia esse caminho. Instrucoes adicionais estao em `motiva-sprint02-poo/lib/README.md`.
+
+## Variaveis de Ambiente
+
+Credenciais reais nunca devem ser commitadas. `ConexaoBD` procura primeiro estas variaveis de ambiente:
+
+- `DB_URL`;
+- `DB_USER`;
+- `DB_PASSWORD`.
+
+PowerShell:
+
+```powershell
+$env:DB_URL = "jdbc:oracle:thin:@//host:1521/servico"
+$env:DB_USER = "seu_usuario"
+$env:DB_PASSWORD = "sua_senha"
+```
+
+Linux/macOS:
+
+```bash
+export DB_URL='jdbc:oracle:thin:@//host:1521/servico'
+export DB_USER='seu_usuario'
+export DB_PASSWORD='sua_senha'
+```
+
+Como alternativa local, copie `config/db.properties.example` para `config/db.properties`. O arquivo real e ignorado pelo Git, e as variaveis de ambiente sempre tem precedencia sobre ele.
+
+## Como criar o banco
+
+Conecte-se ao schema academico e execute, nessa ordem:
+
+```sql
+@sql/seu-script-criacao.sql
+@sql/seu-script-dados.sql
+```
+
+O cabecalho do script de criacao documenta os quatro comandos opcionais de reset em ordem filha-primeiro. Eles ficam comentados e nao fazem parte do fluxo normal. Para uma reapresentacao, confirme o schema conectado, preserve os dados necessarios e execute conscientemente o reset antes de recriar as tabelas.
+
+## Como inserir dados
+
+`seu-script-dados.sql` cadastra:
+
+- Equipe Alpha, Equipe Beta e Equipe Preventiva;
+- seis trechos, dos KM 10 a 15;
+- tipos de crescimento seco, normal e umido;
+- areas sensiveis e nao sensiveis;
+- dois trechos IoT;
+- intervencoes coerentes com o motor;
+- um relatorio inicial com `NORMAL=1`, `BAIXA=0`, `MEDIA=1`, `ALTA=2` e `CRITICA=2`.
+
+O script termina com `COMMIT`.
+
+## Como executar no IntelliJ
+
+1. Abra a raiz do repositorio.
+2. Acesse `File -> Project Structure -> Modules -> Dependencies`.
+3. Se a dependencia nao for reconhecida automaticamente, clique em `+ -> JARs or Directories`.
+4. Selecione `motiva-sprint02-poo/lib/ojdbc17.jar`.
+5. Configure as tres variaveis de ambiente na Run Configuration.
+6. Execute `br.com.motiva.Main`.
+
+## Como executar no terminal
+
+Entre no diretorio `motiva-sprint02-poo` e crie a saida local.
+
+Windows PowerShell:
+
+```powershell
+$fontes = Get-ChildItem -Recurse -Filter *.java src | ForEach-Object { $_.FullName }
+javac --release 17 -encoding UTF-8 -cp "lib/ojdbc17.jar" -d out $fontes
+java -cp "out;lib/ojdbc17.jar" br.com.motiva.Main
+```
+
+Linux/macOS:
+
+```bash
+find src -name "*.java" > sources.txt
+javac --release 17 -encoding UTF-8 -cp "lib/ojdbc17.jar" -d out @sources.txt
+java -cp "out:lib/ojdbc17.jar" br.com.motiva.Main
+```
+
+O separador de classpath e `;` no Windows e `:` no Linux/macOS.
+
+## CRUD implementado
+
+Todos os DAOs possuem construtor padrao e os metodos `inserir`, `buscarPorId`, `listarTodas`, `atualizar` e `deletar`. O `Main` demonstra o CRUD com registros temporarios e exclui somente esses registros ao final da demonstracao. Os dados principais da massa nao sao destruidos.
+
+Metodos adicionais:
+
+- `EquipeManutencaoDAO.buscarPorNome` resolve a equipe operacional sem IDs fixos;
+- `TrechoRodoviaDAO.listarComoDominio` reconstrui a hierarquia da Sprint 02;
+- `RelatorioPrioridadeDAO.salvarRelatorio` explicita a gravacao do historico.
+
+## Persistencia dos Relatorios
+
+O gerador recebe os trechos persistidos, executa `MotorRegrasPrioridade`, imprime com `RelatorioPrioridade`, contabiliza os cinco niveis do enum e grava o resumo. `BAIXA` e persistida e contabilizada, embora as regras atuais da Sprint 02 nao produzam essa classificacao.
+
+Resultados com `SEM_INTERVENCAO` nao geram uma linha operacional. As demais intervencoes sao gravadas como `PLANEJADA` e usam a altura projetada calculada pelo motor, inclusive o adicional de area sensivel.
+
+## Tratamento de Excecoes
+
+- erros de banco permanecem como `SQLException` e sao exibidos com mensagem clara;
+- dados invalidos geram `IllegalArgumentException` nos limites de dominio/persistencia;
+- statements e result sets usam `try-with-resources`;
+- a conexao compartilhada e fechada no `finally` do `Main`;
+- falhas na gravacao conjunta provocam `rollback`.
+
+## Seguranca com PreparedStatement
+
+Todas as consultas parametrizadas usam `PreparedStatement`. Nao ha concatenacao de entrada em SQL, logging de senha ou credenciais versionadas. `.env` e `db.properties` sao ignorados pelo Git.
+
+## Exemplo de Execucao
+
+```text
+============================================================
+MOTIVA - SPRINT 03
+Persistencia Oracle + JDBC
+============================================================
+
+[1] TESTANDO CONEXAO
+Conexao com Oracle realizada com sucesso.
+
+[2] CRUD EQUIPES
+...
+
+[5] GERANDO RELATORIO
+RELATORIO DE PRIORIDADE OPERACIONAL - MOTIVA
+...
+
+[6] HISTORICO DE RELATORIOS
+...
+```
+
+O CRUD Oracle e os scripts devem ser validados em uma instancia Oracle real. Compilacao local sem driver nao comprova conexao, constraints, FKs ou transacoes.
+
+## Regras de Prioridade Preservadas
+
+| Altura projetada | Intervencao | Prioridade |
+|---|---|---|
+| menor que 40 cm | Sem intervencao | NORMAL |
+| de 40 a 59,99 cm | Pulverizacao preventiva | MEDIA |
+| de 60 a 89,99 cm | Rocada manual | ALTA |
+| a partir de 90 cm | Rocada mecanizada | CRITICA |
+
+Areas sensiveis recebem o adicional operacional de 10 cm. Trechos IoT fornecem a altura pelo contrato `MonitoravelViaIoT`.
+
+## Conceitos de POO da Sprint 02
+
+- classe abstrata e especializacoes de intervencao;
+- interface para monitoramento IoT;
+- heranca de trecho monitorado;
+- polimorfismo na execucao das intervencoes;
+- encapsulamento e validacao de estado;
+- motor de regras isolado da persistencia.
 
 ## Integrantes
 
 | Nome | RM |
 |---|---|
-| João Victor Alves de Abreu | 564946 |
+| Joao Victor Alves de Abreu | 564946 |
 | Luiz Henrique Barbosa Dias | 562399 |
 | Rodrigo Kenshin Viana Matayoshi | 564026 |
-
-## Objetivo da Sprint
-
-Construir o motor de regras responsável por transformar dados de trechos rodoviários em decisões operacionais. A proposta considera que diferentes ambientes possuem diferentes comportamentos de crescimento, como trechos úmidos, secos ou normais, e que cada situação exige um tipo específico de intervenção.
-
-## Funcionalidades implementadas
-
-- Cadastro simulado de trechos de rodovia em array.
-- Classificação do comportamento de crescimento da vegetação.
-- Cálculo da altura projetada da vegetação.
-- Priorização automática dos trechos analisados.
-- Indicação de roçada mecanizada, roçada manual, pulverização preventiva ou ausência de intervenção.
-- Simulação de trechos monitorados via IoT.
-- Geração de relatório operacional no console.
-- Execução simulada das intervenções indicadas.
-
-## Conceitos de POO aplicados
-
-### Classe abstrata
-
-A classe `IntervencaoOperacional` representa o conceito genérico de uma intervenção em campo. Ela não pode ser instanciada diretamente, pois uma equipe não executa uma intervenção genérica: ela executa um serviço concreto, como roçada mecanizada, roçada manual ou pulverização.
-
-Classes concretas implementadas:
-
-- `RocadaMecanizada`
-- `RocadaManual`
-- `Pulverizacao`
-
-### Interface
-
-A interface `MonitoravelViaIoT` define o contrato para objetos capazes de transmitir dados automaticamente por sensor. Com isso, o sistema consegue tratar trechos monitorados por IoT sem acoplar essa funcionalidade diretamente à classe base `TrechoRodovia`.
-
-Classe que implementa a interface:
-
-- `TrechoMonitoradoIoT`
-
-### Herança e polimorfismo
-
-A classe `TrechoMonitoradoIoT` herda de `TrechoRodovia` e implementa `MonitoravelViaIoT`. Além disso, as intervenções concretas herdam de `IntervencaoOperacional` e sobrescrevem o método `executarServico()`.
-
-### Encapsulamento
-
-Os atributos das classes são privados e acessados por métodos públicos, garantindo controle sobre o estado dos objetos e validação dos dados.
-
-## Regras de prioridade
-
-| Condição | Intervenção | Prioridade |
-|---|---|---|
-| Altura projetada menor que 40 cm | Sem intervenção | Normal |
-| Altura projetada entre 40 cm e 59,99 cm | Pulverização preventiva | Média |
-| Altura projetada entre 60 cm e 89,99 cm | Roçada manual | Alta |
-| Altura projetada a partir de 90 cm | Roçada mecanizada | Crítica |
-
-Trechos classificados como área sensível recebem um acréscimo operacional de risco, aumentando a prioridade da análise.
-
-## Estrutura do projeto
-
-```text
-src/
- └── br/com/motiva/
-     ├── Main.java
-     ├── model/
-     │   ├── NivelPrioridade.java
-     │   ├── TipoCrescimento.java
-     │   ├── TipoIntervencao.java
-     │   ├── TrechoMonitoradoIoT.java
-     │   └── TrechoRodovia.java
-     ├── service/
-     │   ├── MotorRegrasPrioridade.java
-     │   ├── RelatorioPrioridade.java
-     │   └── ResultadoPrioridade.java
-     ├── intervencao/
-     │   ├── IntervencaoOperacional.java
-     │   ├── Pulverizacao.java
-     │   ├── RocadaManual.java
-     │   └── RocadaMecanizada.java
-     ├── iot/
-     │   └── MonitoravelViaIoT.java
-     └── util/
-         └── FormatadorDecimal.java
-```
-
-## Como executar no IntelliJ IDEA
-
-1. Abra o IntelliJ IDEA.
-2. Selecione `File > Open`.
-3. Escolha a pasta do projeto.
-4. Aguarde o IntelliJ reconhecer a estrutura Java.
-5. Abra o arquivo `src/br/com/motiva/Main.java`.
-6. Clique em `Run` no método `main`.
-
-## Como executar pelo terminal
-
-Na raiz do projeto, execute:
-
-```bash
-javac -d out $(find src -name "*.java")
-java -cp out br.com.motiva.Main
-```
-
-No Windows PowerShell, use:
-
-```powershell
-Get-ChildItem -Recurse -Filter *.java src | ForEach-Object { $_.FullName } > sources.txt
-javac -d out @sources.txt
-java -cp out br.com.motiva.Main
-```
-
-## Exemplo de saída esperada
-
-```text
-RELATORIO DE PRIORIDADE OPERACIONAL - MOTIVA
-KM: 14
-Prioridade: CRITICA
-Intervencao indicada: Rocada mecanizada
-Justificativa: Vegetacao projetada em nivel critico. Indica risco operacional e exige roçada mecanizada.
-```
-
-## Respostas de reflexão
-
-### Por que não faz sentido para a Motiva executar apenas uma "Intervenção Operacional" genérica?
-
-Porque uma operação real precisa de procedimento, equipe, equipamento, custo, tempo e risco operacional definidos. Uma intervenção genérica não descreve o que será feito em campo. A classe abstrata serve apenas como modelo comum, enquanto as classes concretas representam serviços reais executáveis.
-
-### Qual a diferença arquitetural entre herdar de uma classe abstrata e implementar uma interface?
-
-A classe abstrata define uma base comum para objetos da mesma família conceitual, podendo conter atributos e comportamentos compartilhados. A interface define apenas um contrato de comportamento, permitindo que classes de diferentes hierarquias implementem uma mesma capacidade. No projeto, `IntervencaoOperacional` é uma abstração base de serviços, enquanto `MonitoravelViaIoT` representa apenas a capacidade de transmitir dados por sensor.
-
-## Observações de Clean Code
-
-- Pacotes organizados por responsabilidade.
-- Classes com nomes claros e alinhados ao domínio do problema.
-- Métodos pequenos e com responsabilidade única.
-- Regras de negócio centralizadas no `MotorRegrasPrioridade`.
-- Interface pequena, respeitando o princípio de segregação de interfaces.
-- Classe abstrata nomeada como conceito genérico do domínio.
-
