@@ -22,3 +22,6 @@ sources.txt
 !.env.example
 db.properties
 **/db.properties
+
+# Oracle JDBC driver installed locally
+lib/ojdbc17.jar
