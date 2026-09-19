@@ -1,0 +1,12 @@
+# Build output generated at the repository root by IntelliJ
+/out/
+
+# Local credentials and environment files
+.env
+.env.*
+!.env.example
+db.properties
+
+# Logs and temporary source lists
+*.log
+sources.txt

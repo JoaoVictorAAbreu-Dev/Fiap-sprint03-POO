@@ -15,3 +15,10 @@ Thumbs.db
 # Temporary files
 *.log
 sources.txt
+
+# Local database configuration and environment files
+.env
+.env.*
+!.env.example
+db.properties
+**/db.properties
