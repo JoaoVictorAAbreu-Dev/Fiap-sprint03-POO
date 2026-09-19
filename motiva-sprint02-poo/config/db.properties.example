@@ -1,0 +1,6 @@
+# Copie este arquivo para config/db.properties apenas no seu ambiente local.
+# Variaveis de ambiente DB_URL, DB_USER e DB_PASSWORD tem precedencia.
+
+db.url=jdbc:oracle:thin:@//host:1521/servico
+db.user=seu_usuario
+db.password=sua_senha
