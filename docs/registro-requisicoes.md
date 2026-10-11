@@ -13,7 +13,7 @@ Em 11/10/2026, `mvn clean verify` executou `MotivaApiTest` e `RelatorioEspeciali
 | `POST /api/relatorios` | 201 | `qtCritica=1` e intervenção persistida |
 | `GET /api/relatorios` | 200 | histórico contém relatório |
 | `GET /api/relatorios/periodo` | 200 | período contém relatório |
-| `GET /api/intervencoes` | 200 | equipe Alpha vinculada à intervenção |
+| `GET /api/intervencoes` | 200 | equipe de especialidade ROCADA MECANIZADA vinculada à intervenção |
 | `DELETE /api/intervencoes/{id}` | 204 | intervenção removida |
 | `DELETE /api/trechos/{id}` | 204 | trecho removido |
 
@@ -39,4 +39,4 @@ DELETE /api/trechos/1 -> 204
 RESULTADO: 14 requisições verificadas, 0 falhas
 ```
 
-Este registro comprova o comportamento local MockMvc/H2 e HTTP/H2; **não é evidência de conexão ao Oracle FIAP**.
+Este registro comprova o comportamento local MockMvc/H2 e HTTP/H2. A validação adicional no Oracle FIAP está em [validacao-oracle-fiap.md](validacao-oracle-fiap.md).
