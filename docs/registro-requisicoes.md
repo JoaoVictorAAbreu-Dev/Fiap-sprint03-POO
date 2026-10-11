@@ -39,4 +39,4 @@ DELETE /api/trechos/1 -> 204
 RESULTADO: 14 requisições verificadas, 0 falhas
 ```
 
-Este registro comprova o comportamento local MockMvc/H2 e HTTP/H2. A validação adicional no Oracle FIAP está em [validacao-oracle-fiap.md](validacao-oracle-fiap.md).
+Este registro comprova o comportamento local MockMvc/H2 e HTTP/H2. A validação adicional no Oracle FIAP, incluindo CRUD e relatório com rollback, está em [validacao-oracle-fiap.md](validacao-oracle-fiap.md).

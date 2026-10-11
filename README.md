@@ -72,11 +72,13 @@ mvn test
 mvn package
 ```
 
+Para repetir o teste no Oracle, configure `DB_URL`, `DB_USER` e `DB_PASSWORD` no ambiente e rode `FIAP_ORACLE_TEST=true mvn -Dtest=OracleWriteIntegrationTest test`. Sem `FIAP_ORACLE_TEST=true`, esse teste é ignorado e o `mvn test` comum usa apenas H2.
+
 `MotivaApiTest` executa a API com `@SpringBootTest` + MockMvc e H2 em modo Oracle. O teste carrega **o próprio `sql/schema-oracle.sql` da Sprint 03** e inicia com `ddl-auto=validate`, para detectar divergências entre as entidades JPA e as colunas existentes. Verifica CRUD, consultas derivadas, relatório, histórico, período, validação 400 e ausência 404. `RelatorioEspecialidadeTest` verifica as três especialidades, nomes livres e seleção determinística quando há mais de uma equipe ativa com a mesma especialidade.
 
-No QA de 11/10/2026, `mvn clean verify` passou com **Java 17.0.20.1** (2 testes, 0 falhas/erros). A aplicação também subiu em HTTP local com H2 e respondeu corretamente a **14 requisições** de CRUD, relatório e erros, registradas em [registro das requisições](docs/registro-requisicoes.md).
+No QA de 11/10/2026, `mvn clean verify` passou com **Java 17.0.20.1** (2 testes H2 aprovados, 1 teste Oracle opt-in ignorado, 0 falhas/erros). A aplicação também subiu em HTTP local com H2 e respondeu corretamente a **14 requisições** de CRUD, relatório e erros, registradas em [registro das requisições](docs/registro-requisicoes.md).
 
-**Oracle FIAP validado em 11/10/2026:** autenticação no schema acadêmico, presença das quatro tabelas, inicialização da API Spring Boot 4.1.1 com `ddl-auto=validate` no Oracle Database 19c e cinco consultas HTTP de leitura com status 200. As contagens observadas foram 3 equipes, 6 trechos, 10 intervenções e 2 relatórios. Veja [evidência da validação Oracle](docs/validacao-oracle-fiap.md). A validação remota foi somente de leitura; operações de escrita no Oracle não foram executadas. Nenhuma credencial foi gravada no repositório.
+**Oracle FIAP validado em 11/10/2026:** autenticação no schema acadêmico, presença das quatro tabelas, inicialização da API Spring Boot 4.1.1 com `ddl-auto=validate` no Oracle Database 19c e cinco consultas HTTP de leitura com status 200. O teste opt-in `OracleWriteIntegrationTest` também passou no banco real com CRUD de equipe, trecho e intervenção e geração de relatório. Todas as escritas ocorreram em uma transação revertida; as contagens antes e depois permaneceram 3 equipes, 6 trechos, 10 intervenções e 2 relatórios. Veja [evidência da validação Oracle](docs/validacao-oracle-fiap.md). Nenhuma credencial foi gravada no repositório.
 
 ## Perguntas de reflexão
 
