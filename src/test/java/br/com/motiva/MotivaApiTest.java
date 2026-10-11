@@ -29,16 +29,21 @@ class MotivaApiTest {
         long alpha=id(criar("/api/equipes", "{\"nome\":\"Equipe Alpha\",\"especialidade\":\"ROCADA MECANIZADA\",\"ativa\":true}"));
         long beta=id(criar("/api/equipes", "{\"nome\":\"Equipe Beta\",\"especialidade\":\"ROCADA MANUAL\",\"ativa\":true}"));
         long preventiva=id(criar("/api/equipes", "{\"nome\":\"Equipe Preventiva\",\"especialidade\":\"PULVERIZACAO PREVENTIVA\",\"ativa\":true}"));
+        assertThat(alpha).isGreaterThanOrEqualTo(1_000_000_000L);
+        assertThat(beta).isGreaterThan(alpha);
         mvc.perform(put("/api/equipes/"+alpha).contentType(MediaType.APPLICATION_JSON).content("{\"nome\":\"Equipe de Campo\",\"especialidade\":\"ROCADA MECANIZADA\",\"ativa\":true}")).andExpect(status().isOk()).andExpect(jsonPath("$.nome").value("Equipe de Campo"));
         String trecho="{\"quilometro\":10,\"sentido\":\"NORTE\",\"alturaVegetacaoCm\":100,\"tipoCrescimento\":\"NORMAL\",\"areaSensivel\":false,\"monitoradoIot\":false,\"codigoSensor\":null}";
         long trechoId=id(criar("/api/trechos", trecho));
+        assertThat(trechoId).isGreaterThanOrEqualTo(1_000_000_000L);
         mvc.perform(get("/api/trechos/"+trechoId)).andExpect(status().isOk()).andExpect(jsonPath("$.quilometro").value(10));
         assertThat(trechos.findByAlturaVegetacaoCmGreaterThanEqual(90.0)).hasSize(1);
         assertThat(trechos.findByTipoCrescimento(TipoCrescimento.NORMAL)).hasSize(1);
         mvc.perform(put("/api/trechos/"+trechoId).contentType(MediaType.APPLICATION_JSON).content(trecho.replace("\"quilometro\":10", "\"quilometro\":11"))).andExpect(status().isOk()).andExpect(jsonPath("$.quilometro").value(11));
         mvc.perform(get("/api/trechos/999999")).andExpect(status().isNotFound());
         mvc.perform(post("/api/trechos").contentType(MediaType.APPLICATION_JSON).content(trecho.replace("\"alturaVegetacaoCm\":100", "\"alturaVegetacaoCm\":-1"))).andExpect(status().isBadRequest());
-        mvc.perform(post("/api/relatorios")).andExpect(status().isCreated()).andExpect(jsonPath("$.qtCritica").value(1));
+        long relatorioId=id(mvc.perform(post("/api/relatorios")).andExpect(status().isCreated())
+                .andExpect(jsonPath("$.qtCritica").value(1)).andReturn());
+        assertThat(relatorioId).isGreaterThanOrEqualTo(1_000_000_000L);
         mvc.perform(get("/api/relatorios")).andExpect(status().isOk()).andExpect(jsonPath("$[0].qtCritica").value(1));
         mvc.perform(get("/api/relatorios/periodo").param("inicio","2020-01-01T00:00:00").param("fim","2030-01-01T00:00:00")).andExpect(status().isOk()).andExpect(jsonPath("$[0].qtCritica").value(1));
         mvc.perform(get("/api/relatorios/periodo").param("inicio","2030-01-01T00:00:00").param("fim","2020-01-01T00:00:00")).andExpect(status().isBadRequest());
@@ -51,6 +56,7 @@ class MotivaApiTest {
         assertThat(itens).hasSize(1);
         assertThat(itens.get(0).get("idEquipe").asLong()).isEqualTo(alpha);
         long intervencaoId=itens.get(0).get("id").asLong();
+        assertThat(intervencaoId).isGreaterThanOrEqualTo(1_000_000_000L);
         mvc.perform(delete("/api/intervencoes/"+intervencaoId)).andExpect(status().isNoContent());
         String manual="{\"idTrecho\":"+trechoId+",\"idEquipe\":"+beta+",\"tipoIntervencao\":\"ROCADA_MANUAL\",\"nivelPrioridade\":\"ALTA\",\"alturaProjetadaCm\":70,\"justificativa\":\"Teste manual\",\"status\":\"PLANEJADA\"}";
         long novoId=id(criar("/api/intervencoes",manual));

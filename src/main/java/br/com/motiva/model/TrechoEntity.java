@@ -7,7 +7,9 @@ import java.math.BigDecimal;
 
 @Entity @Table(name = "TB_TRECHO_RODOVIA")
 public class TrechoEntity {
-    @Id @JdbcTypeCode(SqlTypes.NUMERIC) @GeneratedValue(strategy = GenerationType.IDENTITY) @Column(name = "ID_TRECHO") private Long id;
+    @Id @JdbcTypeCode(SqlTypes.NUMERIC) @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "trecho_seq")
+    @SequenceGenerator(name = "trecho_seq", sequenceName = "SEQ_TRECHO_RODOVIA", allocationSize = 1)
+    @Column(name = "ID_TRECHO") private Long id;
     @JdbcTypeCode(SqlTypes.NUMERIC) @Column(name = "QUILOMETRO", nullable = false, precision = 6, scale = 0) private Integer quilometro;
     @Column(name = "SENTIDO", nullable = false, length = 20) private String sentido;
     @Column(name = "ALTURA_VEGETACAO_CM", nullable = false, precision = 8, scale = 2) private BigDecimal alturaVegetacaoCm;
