@@ -1,344 +1,85 @@
-# MOTIVA - Sprint 03
+# MOTIVA — Sprint 04: Spring Boot, JPA e API REST
 
-Aplicacao academica em Java que evolui o motor de priorizacao de manejo de vegetacao da Sprint 02 com persistencia em Oracle Database por JDBC puro. O sistema cadastra e consulta equipes e trechos, registra intervencoes, executa as regras operacionais existentes e mantem o historico dos relatorios.
+Evolução do projeto da Sprint 03. A API preserva as quatro tabelas Oracle e o motor de prioridade da Sprint 02. A interface é JSON; a antiga camada JDBC/console foi substituída por `Controller → Service → Repository → JPA`.
 
 ## Integrantes
 
 | Nome | RM |
-|---|---|
-| Joao Victor Alves de Abreu | 564946 |
+|---|---:|
+| João Victor Alves de Abreu | 564946 |
 | Luiz Henrique Barbosa Dias | 562399 |
 | Rodrigo Kenshin Viana Matayoshi | 564026 |
 
+## Requisitos e execução
 
-## Visao Geral
-
-A Sprint 03 substitui a massa simulada do fluxo principal por dados persistidos no Oracle, sem trocar a arquitetura orientada a objetos criada anteriormente. JDBC permanece explicito: conexoes, `PreparedStatement`, `ResultSet`, mapeamentos e fechamento de recursos podem ser demonstrados diretamente.
-
-## Evolucao da Sprint 02
-
-A Sprint 02 continua presente e funcional:
-
-- `TrechoRodovia` preserva encapsulamento e validacoes;
-- `TrechoMonitoradoIoT` continua herdando de `TrechoRodovia` e implementando `MonitoravelViaIoT`;
-- `IntervencaoOperacional` permanece abstrata, com `RocadaManual`, `RocadaMecanizada` e `Pulverizacao` como implementacoes polimorficas;
-- `MotorRegrasPrioridade` continua sendo a unica fonte das regras de classificacao;
-- `ResultadoPrioridade` e `RelatorioPrioridade` continuam representando e imprimindo o resultado operacional.
-
-Os novos records existem somente na fronteira de persistencia. Nenhuma classe do dominio depende de JDBC ou de DAO.
-
-## Objetivo
-
-- executar CRUD completo das quatro entidades da Sprint 03;
-- reconstruir trechos comuns e IoT a partir do banco;
-- analisar os trechos persistidos com o motor da Sprint 02;
-- gravar o resumo de cada relatorio;
-- gravar as intervencoes planejadas, vinculadas a trechos e equipes;
-- demonstrar o fluxo completo no `Main`.
-
-## Tecnologias
-
-- Java 17 ou superior;
-- Oracle Database 12c ou superior para as colunas `IDENTITY` utilizadas nos scripts;
-- JDBC puro (`java.sql`);
-- Oracle JDBC Driver `ojdbc17.jar`;
-- IntelliJ IDEA ou terminal.
-
-Nao sao utilizados Spring, JPA, Hibernate, ORM, Maven ou Gradle.
-
-## Arquitetura
-
-```text
-Oracle
-  -> ConexaoBD
-  -> DAOs
-  -> records de persistencia
-  -> dominio da Sprint 02
-  -> MotorRegrasPrioridade
-  -> ResultadoPrioridade[]
-  -> RelatorioPrioridade (console)
-  -> GeradorRelatorio
-  -> historico e intervencoes no Oracle
-```
-
-`GeradorRelatorio` orquestra o caso de uso. O relatorio e as intervencoes geradas na mesma analise usam DAOs presos a uma unica conexao transacional: uma falha provoca `rollback` do conjunto sem reconexao silenciosa.
-
-## Estrutura de Pacotes
-
-```text
-motiva-sprint02-poo/
-|-- config/
-|   `-- db.properties.example
-|-- lib/
-|   `-- README.md
-|-- sql/
-|   |-- seu-script-criacao.sql
-|   `-- seu-script-dados.sql
-`-- src/br/com/motiva/
-    |-- Main.java
-    |-- dao/
-    |   |-- EquipeManutencaoDAO.java
-    |   |-- IntervencaoOperacionalDAO.java
-    |   |-- RelatorioPrioridadeDAO.java
-    |   `-- TrechoRodoviaDAO.java
-    |-- db/
-    |   `-- ConexaoBD.java
-    |-- intervencao/
-    |-- iot/
-    |-- model/
-    |   `-- persistence/
-    |       |-- EquipeManutencaoRecord.java
-    |       |-- IntervencaoOperacionalRecord.java
-    |       |-- RelatorioPrioridadeRecord.java
-    |       `-- TrechoRodoviaRecord.java
-    |-- service/
-    |   |-- GeradorRelatorio.java
-    |   |-- MotorRegrasPrioridade.java
-    |   |-- RelatorioPrioridade.java
-    |   `-- ResultadoPrioridade.java
-    `-- util/
-```
-
-## Modelo de Dados
-
-```mermaid
-erDiagram
-    TB_EQUIPE_MANUTENCAO ||--o{ TB_INTERVENCAO_OPERACIONAL : executa
-    TB_TRECHO_RODOVIA ||--o{ TB_INTERVENCAO_OPERACIONAL : recebe
-
-    TB_EQUIPE_MANUTENCAO {
-        NUMBER ID_EQUIPE PK
-        VARCHAR2 NOME UK
-        VARCHAR2 ESPECIALIDADE
-        CHAR ATIVA
-    }
-    TB_TRECHO_RODOVIA {
-        NUMBER ID_TRECHO PK
-        NUMBER QUILOMETRO
-        VARCHAR2 SENTIDO
-        NUMBER ALTURA_VEGETACAO_CM
-        VARCHAR2 TIPO_CRESCIMENTO
-        CHAR AREA_SENSIVEL
-        CHAR MONITORADO_IOT
-        VARCHAR2 CODIGO_SENSOR UK
-    }
-    TB_INTERVENCAO_OPERACIONAL {
-        NUMBER ID_INTERVENCAO PK
-        NUMBER ID_TRECHO FK
-        NUMBER ID_EQUIPE FK
-        VARCHAR2 TIPO_INTERVENCAO
-        VARCHAR2 NIVEL_PRIORIDADE
-        NUMBER ALTURA_PROJETADA_CM
-        TIMESTAMP DATA_INTERVENCAO
-        VARCHAR2 STATUS
-    }
-    TB_RELATORIO_PRIORIDADE {
-        NUMBER ID_RELATORIO PK
-        TIMESTAMP DATA_GERACAO
-        NUMBER QT_NORMAL
-        NUMBER QT_BAIXA
-        NUMBER QT_MEDIA
-        NUMBER QT_ALTA
-        NUMBER QT_CRITICA
-        VARCHAR2 RESUMO
-    }
-```
-
-## Tabelas Oracle
-
-- `TB_EQUIPE_MANUTENCAO`: equipes, especialidades e estado ativo/inativo;
-- `TB_TRECHO_RODOVIA`: dados do trecho e discriminador para reconstruir `TrechoMonitoradoIoT`;
-- `TB_INTERVENCAO_OPERACIONAL`: historico operacional com FKs para equipe e trecho;
-- `TB_RELATORIO_PRIORIDADE`: contagens e resumo de cada execucao do motor.
-
-As constraints validam valores nao negativos, enums do dominio, flags `S/N`, coerencia entre IoT e codigo do sensor e contagens do relatorio. As FKs nao usam exclusao em cascata: dados relacionados nao sao removidos silenciosamente.
-
-## Relacionamentos
-
-Uma equipe pode executar varias intervencoes e um trecho pode receber varias intervencoes. O historico de relatorios representa uma execucao agregada do motor e nao substitui as intervencoes individuais.
-
-## Configuracao do Oracle
-
-Defina uma URL Thin no formato:
-
-```text
-jdbc:oracle:thin:@//host:porta/servico
-```
-
-Os scripts usam `GENERATED BY DEFAULT AS IDENTITY`, disponivel no Oracle 12c+. Esta entrega foi validada no Oracle Database 19c do ambiente academico. Em uma instalacao anterior ao 12c, substitua as colunas identity por sequences e use `NEXTVAL` nos inserts; essa alternativa nao foi declarada como testada neste repositorio.
-
-## Configuracao do ojdbc17
-
-O driver nao e distribuido neste repositorio. Obtenha o `ojdbc17.jar` de uma fonte Oracle autorizada e copie para:
-
-```text
-motiva-sprint02-poo/lib/ojdbc17.jar
-```
-
-O modulo IntelliJ ja referencia esse caminho. Instrucoes adicionais estao em `motiva-sprint02-poo/lib/README.md`.
-
-## Variaveis de Ambiente
-
-Credenciais reais nunca devem ser commitadas. `ConexaoBD` procura primeiro estas variaveis de ambiente:
-
-- `DB_URL`;
-- `DB_USER`;
-- `DB_PASSWORD`.
-
-PowerShell:
-
-```powershell
-$env:DB_URL = "jdbc:oracle:thin:@//host:1521/servico"
-$env:DB_USER = "seu_usuario"
-$env:DB_PASSWORD = "sua_senha"
-```
-
-Linux/macOS:
+- Java 17+; Maven 3.6.3+; Spring Boot 4.1.1.
+- Acesso ao schema Oracle FIAP com as tabelas da Sprint 03.
+- Configure `DB_URL`, `DB_USER` e `DB_PASSWORD` no ambiente. Exemplo:
 
 ```bash
-export DB_URL='jdbc:oracle:thin:@//host:1521/servico'
-export DB_USER='seu_usuario'
-export DB_PASSWORD='sua_senha'
+export DB_URL='jdbc:oracle:thin:@//oracle.fiap.com.br:1521/ORCL'
+export DB_USER='SEU_USUARIO'
+export DB_PASSWORD='SUA_SENHA'
+mvn spring-boot:run
 ```
 
-Como alternativa local, copie `config/db.properties.example` para `config/db.properties`. O arquivo real e ignorado pelo Git, e as variaveis de ambiente sempre tem precedencia sobre ele.
+A aplicação usa `spring.jpa.hibernate.ddl-auto=validate`: ela confere o esquema e não cria nem apaga tabelas. Para um schema vazio, rode `sql/schema-oracle.sql` e, se desejar, `sql/dados-exemplo.sql` uma vez no Oracle. O script de criação é o da Sprint 03 e usa `IDENTITY`. Por isso as entidades usam `@GeneratedValue(strategy = IDENTITY)`, em vez de `@SequenceGenerator`: **não existem sequences nomeadas nesse schema**. Trocar para uma sequence sem migrar o banco quebraria o reaproveitamento exigido. O Oracle gerencia a sequence interna de cada coluna identity.
 
-## Como criar o banco
+As credenciais ficam somente em variáveis de ambiente. O driver `ojdbc17` vem do Maven. A URL padrão é a do Oracle FIAP, mas usuário e senha não têm valor padrão.
 
-Conecte-se ao schema academico e execute, nessa ordem:
+## Arquitetura e regras
 
-```sql
-@sql/seu-script-criacao.sql
-@sql/seu-script-dados.sql
-```
+- `model`: entidades JPA das tabelas `TB_EQUIPE_MANUTENCAO`, `TB_TRECHO_RODOVIA`, `TB_INTERVENCAO_OPERACIONAL`, `TB_RELATORIO_PRIORIDADE`; o domínio de trecho, IoT e enums foi reaproveitado.
+- `repository`: interfaces `JpaRepository` e consultas derivadas, como `findByAlturaVegetacaoCmGreaterThanEqual`, `findByTipoIntervencao` e `findByDataGeracaoBetweenOrderByDataGeracaoDesc`.
+- `service`: validações, CRUD e `MotorRegrasPrioridade`. A geração de relatório e intervenções ocorre numa transação.
+- `controller`: rotas HTTP e códigos de resposta. Requisições usam DTOs com Bean Validation; erros comuns são tratados por `@ControllerAdvice`.
 
-O cabecalho do script de criacao documenta os quatro comandos opcionais de reset em ordem filha-primeiro. Eles ficam comentados e nao fazem parte do fluxo normal. Para uma reapresentacao, confirme o schema conectado, preserve os dados necessarios e execute conscientemente o reset antes de recriar as tabelas.
+O motor usa a **altura projetada** (`altura atual × fator de crescimento`, acrescida de 10 cm para área sensível): abaixo de 40 cm `NORMAL`; de 40 a 59,99 cm `MEDIA`/pulverização; de 60 a 89,99 cm `ALTA`/roçada manual; a partir de 90 cm `CRITICA`/roçada mecanizada. `BAIXA` permanece no histórico por compatibilidade com a Sprint 03. Intervenções geradas exigem equipes ativas com os nomes `Equipe Alpha`, `Equipe Beta` e `Equipe Preventiva`, conforme o tipo; se faltar uma equipe necessária, a transação é desfeita.
 
-## Como inserir dados
+## Endpoints
 
-`seu-script-dados.sql` cadastra:
-
-- Equipe Alpha, Equipe Beta e Equipe Preventiva;
-- seis trechos, dos KM 10 a 15;
-- tipos de crescimento seco, normal e umido;
-- areas sensiveis e nao sensiveis;
-- dois trechos IoT;
-- intervencoes coerentes com o motor;
-- um relatorio inicial com `NORMAL=1`, `BAIXA=0`, `MEDIA=1`, `ALTA=2` e `CRITICA=2`.
-
-O script termina com `COMMIT`.
-
-## Como executar no IntelliJ
-
-1. Abra a raiz do repositorio.
-2. Acesse `File -> Project Structure -> Modules -> Dependencies`.
-3. Se a dependencia nao for reconhecida automaticamente, clique em `+ -> JARs or Directories`.
-4. Selecione `motiva-sprint02-poo/lib/ojdbc17.jar`.
-5. Configure as tres variaveis de ambiente na Run Configuration.
-6. Execute `br.com.motiva.Main`.
-
-## Como executar no terminal
-
-Entre no diretorio `motiva-sprint02-poo` e crie a saida local.
-
-Windows PowerShell:
-
-```powershell
-$fontes = Get-ChildItem -Recurse -Filter *.java src | ForEach-Object { $_.FullName }
-javac --release 17 -encoding UTF-8 -cp "lib/ojdbc17.jar" -d out $fontes
-java -cp "out;lib/ojdbc17.jar" br.com.motiva.Main
-```
-
-Linux/macOS:
-
-```bash
-find src -name "*.java" > sources.txt
-javac --release 17 -encoding UTF-8 -cp "lib/ojdbc17.jar" -d out @sources.txt
-java -cp "out:lib/ojdbc17.jar" br.com.motiva.Main
-```
-
-O separador de classpath e `;` no Windows e `:` no Linux/macOS.
-
-## CRUD implementado
-
-Todos os DAOs possuem construtor padrao e os metodos `inserir`, `buscarPorId`, `listarTodas`, `atualizar` e `deletar`. O `Main` demonstra o CRUD com registros temporarios e exclui somente esses registros ao final da demonstracao. Os dados principais da massa nao sao destruidos.
-
-Metodos adicionais:
-
-- `EquipeManutencaoDAO.buscarPorNome` resolve a equipe operacional sem IDs fixos;
-- `TrechoRodoviaDAO.listarComoDominio` reconstrui a hierarquia da Sprint 02;
-- `RelatorioPrioridadeDAO.salvarRelatorio` explicita a gravacao do historico.
-
-## Persistencia dos Relatorios
-
-O gerador recebe os trechos persistidos, executa `MotorRegrasPrioridade`, imprime com `RelatorioPrioridade`, contabiliza os cinco niveis do enum e grava o resumo. `BAIXA` e persistida e contabilizada, embora as regras atuais da Sprint 02 nao produzam essa classificacao.
-
-Resultados com `SEM_INTERVENCAO` nao geram uma linha operacional. As demais intervencoes sao gravadas como `PLANEJADA` e usam a altura projetada calculada pelo motor, inclusive o adicional de area sensivel.
-
-## Tratamento de Excecoes
-
-- erros de banco permanecem como `SQLException` e sao exibidos com mensagem clara;
-- dados invalidos geram `IllegalArgumentException` nos limites de dominio/persistencia;
-- statements e result sets usam `try-with-resources`;
-- a conexao compartilhada e fechada no `finally` do `Main`;
-- falhas na gravacao conjunta provocam `rollback`.
-
-## Seguranca com PreparedStatement
-
-Todas as consultas parametrizadas usam `PreparedStatement`. Nao ha concatenacao de entrada em SQL, logging de senha ou credenciais versionadas. `.env` e `db.properties` sao ignorados pelo Git.
-
-## Exemplo de Execucao
-
-```text
-============================================================
-MOTIVA - SPRINT 03
-Persistencia Oracle + JDBC
-============================================================
-
-[1] TESTANDO CONEXAO
-Conexao com Oracle realizada com sucesso.
-
-[2] CRUD EQUIPES
-...
-
-[6] GERANDO RELATORIO
-RELATORIO DE PRIORIDADE OPERACIONAL - MOTIVA
-...
-
-[7] HISTORICO DE RELATORIOS
-...
-```
-
-## Validacao realizada
-
-Em 19/09/2026, a entrega foi compilada com Java 17 e `ojdbc17.jar` e executada contra Oracle Database 19c no ambiente academico. Foram validados:
-
-- criacao das quatro tabelas e carga completa da massa inicial;
-- CRUD das quatro entidades pelo `Main`;
-- recuperacao dos seis trechos e reconstrucao dos dois objetos `TrechoMonitoradoIoT`;
-- execucao do motor, persistencia atomica do relatorio e de cinco intervencoes planejadas;
-- consulta do historico e fechamento da conexao;
-- rejeicao de FK inexistente (`ORA-02291`), exclusao de registro referenciado (`ORA-02292`) e altura negativa (`ORA-02290`);
-- rollback das operacoes invalidas, preservando tres equipes, seis trechos, dez intervencoes e dois relatorios.
-
-O `ojdbc17.jar` e as credenciais continuam locais e nao sao versionados.
-
-## Regras de Prioridade Preservadas
-
-| Altura projetada | Intervencao | Prioridade |
+| Método | Rota | Resultado |
 |---|---|---|
-| menor que 40 cm | Sem intervencao | NORMAL |
-| de 40 a 59,99 cm | Pulverizacao preventiva | MEDIA |
-| de 60 a 89,99 cm | Rocada manual | ALTA |
-| a partir de 90 cm | Rocada mecanizada | CRITICA |
+| GET | `/api/trechos`, `/api/equipes`, `/api/intervencoes` | Lista, 200 |
+| GET | `/api/trechos/{id}`, `/api/equipes/{id}`, `/api/intervencoes/{id}` | Item, 200 ou 404 |
+| POST | `/api/trechos`, `/api/equipes`, `/api/intervencoes` | Cria, 201 e `Location` |
+| PUT | `/api/trechos/{id}`, `/api/equipes/{id}`, `/api/intervencoes/{id}` | Atualiza, 200 ou 404 |
+| DELETE | `/api/trechos/{id}`, `/api/equipes/{id}`, `/api/intervencoes/{id}` | Remove, 204 ou 404 |
+| POST | `/api/relatorios` | Analisa trechos, grava relatório e intervenções, 201 |
+| GET | `/api/relatorios`, `/api/relatorios/{id}` | Histórico, 200 ou 404 no item |
+| GET | `/api/relatorios/periodo?inicio=...&fim=...` | Histórico inclusivo entre datas ISO 8601, 200 |
 
-Areas sensiveis recebem o adicional operacional de 10 cm. Trechos IoT fornecem a altura pelo contrato `MonitoravelViaIoT`.
+Dados inválidos retornam 400. Violações de unicidade ou outras restrições do banco retornam 409. A exclusão de equipe ou trecho referenciado por intervenção retorna 400 com mensagem; exclua as intervenções antes.
 
-## Conceitos de POO da Sprint 02
+## Exemplos cURL
 
-- classe abstrata e especializacoes de intervencao;
-- interface para monitoramento IoT;
-- heranca de trecho monitorado;
-- polimorfismo na execucao das intervencoes;
-- encapsulamento e validacao de estado;
-- motor de regras isolado da persistencia.
+```bash
+curl -i -X POST http://localhost:8080/api/equipes -H 'Content-Type: application/json' -d '{"nome":"Equipe Alpha","especialidade":"Mecanizada","ativa":true}'
+curl -i -X POST http://localhost:8080/api/trechos -H 'Content-Type: application/json' -d '{"quilometro":10,"sentido":"NORTE","alturaVegetacaoCm":100,"tipoCrescimento":"NORMAL","areaSensivel":false,"monitoradoIot":false,"codigoSensor":null}'
+curl -i http://localhost:8080/api/trechos/1
+curl -i -X PUT http://localhost:8080/api/trechos/1 -H 'Content-Type: application/json' -d '{"quilometro":11,"sentido":"NORTE","alturaVegetacaoCm":100,"tipoCrescimento":"NORMAL","areaSensivel":false,"monitoradoIot":false,"codigoSensor":null}'
+curl -i -X POST http://localhost:8080/api/relatorios
+curl -i 'http://localhost:8080/api/relatorios/periodo?inicio=2026-01-01T00:00:00&fim=2026-12-31T23:59:59'
+curl -i -X DELETE http://localhost:8080/api/trechos/1
+```
+
+No exemplo de relatório, cadastre as equipes necessárias antes de chamar `POST /api/relatorios`. O ID real pode diferir de `1`.
+
+## Testes e registro de requisições
+
+```bash
+mvn test
+mvn package
+```
+
+`MotivaApiTest` executa a API com `@SpringBootTest` + MockMvc e H2 em modo Oracle. O teste verifica respostas de CRUD, relatório, histórico, período, validação 400 e ausência 404. Veja [registro das requisições](docs/registro-requisicoes.md). Este ambiente não possui credenciais Oracle FIAP; a integração com o schema remoto deve ser executada com credenciais próprias.
+
+## Perguntas de reflexão
+
+**Por que Repository é interface?** Declaramos o contrato (`JpaRepository` e nomes de consultas); o Spring Data gera e registra a implementação em tempo de execução, quando sobe a aplicação.
+
+**O DAO morreu?** Não. O papel de isolar o acesso a dados permanece no Repository. O código repetitivo de conexão, comandos e mapeamento foi absorvido pelo Spring Data/JPA.
+
+**Por que validar altura no Service?** A regra vale para qualquer entrada, seja HTTP, uma rotina interna ou outro cliente. O Controller cuida de transporte; o Service mantém a regra de negócio centralizada.
+
+**Onde está o SQL de `findByTipoIntervencao()`?** Não o escrevemos: o Spring Data interpreta o nome do método e cria a consulta para o provedor JPA, que gera o SQL adequado ao Oracle.
