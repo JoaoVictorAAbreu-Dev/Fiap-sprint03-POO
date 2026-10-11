@@ -1,17 +1,19 @@
 package br.com.motiva.model;
 
 import jakarta.persistence.*;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 import java.math.BigDecimal;
 
 @Entity @Table(name = "TB_TRECHO_RODOVIA")
 public class TrechoEntity {
-    @Id @GeneratedValue(strategy = GenerationType.IDENTITY) @Column(name = "ID_TRECHO") private Long id;
-    @Column(name = "QUILOMETRO", nullable = false, precision = 6, scale = 0) private Integer quilometro;
+    @Id @JdbcTypeCode(SqlTypes.NUMERIC) @GeneratedValue(strategy = GenerationType.IDENTITY) @Column(name = "ID_TRECHO") private Long id;
+    @JdbcTypeCode(SqlTypes.NUMERIC) @Column(name = "QUILOMETRO", nullable = false, precision = 6, scale = 0) private Integer quilometro;
     @Column(name = "SENTIDO", nullable = false, length = 20) private String sentido;
     @Column(name = "ALTURA_VEGETACAO_CM", nullable = false, precision = 8, scale = 2) private BigDecimal alturaVegetacaoCm;
     @Enumerated(EnumType.STRING) @Column(name = "TIPO_CRESCIMENTO", nullable = false, length = 10) private TipoCrescimento tipoCrescimento;
-    @Convert(converter = FlagConverter.class) @Column(name = "AREA_SENSIVEL", nullable = false, length = 1) private Boolean areaSensivel;
-    @Convert(converter = FlagConverter.class) @Column(name = "MONITORADO_IOT", nullable = false, length = 1) private Boolean monitoradoIot;
+    @Convert(converter = FlagConverter.class) @JdbcTypeCode(SqlTypes.CHAR) @Column(name = "AREA_SENSIVEL", nullable = false, length = 1) private Boolean areaSensivel;
+    @Convert(converter = FlagConverter.class) @JdbcTypeCode(SqlTypes.CHAR) @Column(name = "MONITORADO_IOT", nullable = false, length = 1) private Boolean monitoradoIot;
     @Column(name = "CODIGO_SENSOR", length = 50) private String codigoSensor;
     protected TrechoEntity() {}
     public TrechoEntity(int quilometro, String sentido, double alturaVegetacaoCm, TipoCrescimento tipoCrescimento, boolean areaSensivel, boolean monitoradoIot, String codigoSensor) { atualizar(quilometro, sentido, alturaVegetacaoCm, tipoCrescimento, areaSensivel, monitoradoIot, codigoSensor); }

@@ -7,17 +7,20 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
+import br.com.motiva.model.TipoCrescimento;
+import br.com.motiva.repository.TrechoRepository;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-@SpringBootTest(properties={"spring.datasource.url=jdbc:h2:mem:motiva;MODE=Oracle;DB_CLOSE_DELAY=-1", "spring.datasource.driver-class-name=org.h2.Driver", "spring.datasource.username=sa", "spring.datasource.password=", "spring.jpa.hibernate.dialect=org.hibernate.dialect.H2Dialect", "spring.jpa.hibernate.ddl-auto=create-drop"})
+@SpringBootTest(properties={"spring.datasource.url=jdbc:h2:mem:motiva;MODE=Oracle;DB_CLOSE_DELAY=-1", "spring.datasource.driver-class-name=org.h2.Driver", "spring.datasource.username=sa", "spring.datasource.password=", "spring.jpa.hibernate.dialect=org.hibernate.dialect.H2Dialect", "spring.jpa.hibernate.ddl-auto=validate", "spring.sql.init.mode=always", "spring.sql.init.schema-locations=file:sql/schema-oracle.sql"})
 @AutoConfigureMockMvc
 class MotivaApiTest {
     @Autowired MockMvc mvc;
     @Autowired ObjectMapper json;
+    @Autowired TrechoRepository trechos;
     private MvcResult criar(String path, String body) throws Exception {
         return mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post(path).contentType(MediaType.APPLICATION_JSON).content(body)).andExpect(status().isCreated()).andReturn();
     }
@@ -29,12 +32,19 @@ class MotivaApiTest {
         String trecho="{\"quilometro\":10,\"sentido\":\"NORTE\",\"alturaVegetacaoCm\":100,\"tipoCrescimento\":\"NORMAL\",\"areaSensivel\":false,\"monitoradoIot\":false,\"codigoSensor\":null}";
         long trechoId=id(criar("/api/trechos", trecho));
         mvc.perform(get("/api/trechos/"+trechoId)).andExpect(status().isOk()).andExpect(jsonPath("$.quilometro").value(10));
+        assertThat(trechos.findByAlturaVegetacaoCmGreaterThanEqual(90.0)).hasSize(1);
+        assertThat(trechos.findByTipoCrescimento(TipoCrescimento.NORMAL)).hasSize(1);
         mvc.perform(put("/api/trechos/"+trechoId).contentType(MediaType.APPLICATION_JSON).content(trecho.replace("\"quilometro\":10", "\"quilometro\":11"))).andExpect(status().isOk()).andExpect(jsonPath("$.quilometro").value(11));
         mvc.perform(get("/api/trechos/999999")).andExpect(status().isNotFound());
         mvc.perform(post("/api/trechos").contentType(MediaType.APPLICATION_JSON).content(trecho.replace("\"alturaVegetacaoCm\":100", "\"alturaVegetacaoCm\":-1"))).andExpect(status().isBadRequest());
         mvc.perform(post("/api/relatorios")).andExpect(status().isCreated()).andExpect(jsonPath("$.qtCritica").value(1));
         mvc.perform(get("/api/relatorios")).andExpect(status().isOk()).andExpect(jsonPath("$[0].qtCritica").value(1));
         mvc.perform(get("/api/relatorios/periodo").param("inicio","2020-01-01T00:00:00").param("fim","2030-01-01T00:00:00")).andExpect(status().isOk()).andExpect(jsonPath("$[0].qtCritica").value(1));
+        mvc.perform(get("/api/relatorios/periodo").param("inicio","2030-01-01T00:00:00").param("fim","2020-01-01T00:00:00")).andExpect(status().isBadRequest());
+        mvc.perform(put("/api/equipes/"+alpha).contentType(MediaType.APPLICATION_JSON).content("{\"nome\":\"Equipe Alpha\",\"especialidade\":\"Mecanizada\",\"ativa\":false}")).andExpect(status().isOk()).andExpect(jsonPath("$.ativa").value(false));
+        mvc.perform(post("/api/relatorios")).andExpect(status().isBadRequest());
+        mvc.perform(get("/api/relatorios")).andExpect(status().isOk()).andExpect(jsonPath("$.length()").value(1));
+        mvc.perform(put("/api/equipes/"+alpha).contentType(MediaType.APPLICATION_JSON).content("{\"nome\":\"Equipe Alpha\",\"especialidade\":\"Mecanizada\",\"ativa\":true}")).andExpect(status().isOk());
         MvcResult lista=mvc.perform(get("/api/intervencoes")).andExpect(status().isOk()).andReturn();
         JsonNode itens=json.readTree(lista.getResponse().getContentAsString());
         assertThat(itens).hasSize(1);

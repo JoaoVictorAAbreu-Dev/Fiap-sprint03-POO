@@ -17,7 +17,7 @@ Evolução do projeto da Sprint 03. A API preserva as quatro tabelas Oracle e o 
 - Configure `DB_URL`, `DB_USER` e `DB_PASSWORD` no ambiente. Exemplo:
 
 ```bash
-export DB_URL='jdbc:oracle:thin:@//oracle.fiap.com.br:1521/ORCL'
+export DB_URL='jdbc:oracle:thin:@oracle.fiap.com.br:1521:ORCL'
 export DB_USER='SEU_USUARIO'
 export DB_PASSWORD='SUA_SENHA'
 mvn spring-boot:run
@@ -25,7 +25,7 @@ mvn spring-boot:run
 
 A aplicação usa `spring.jpa.hibernate.ddl-auto=validate`: ela confere o esquema e não cria nem apaga tabelas. Para um schema vazio, rode `sql/schema-oracle.sql` e, se desejar, `sql/dados-exemplo.sql` uma vez no Oracle. O script de criação é o da Sprint 03 e usa `IDENTITY`. Por isso as entidades usam `@GeneratedValue(strategy = IDENTITY)`, em vez de `@SequenceGenerator`: **não existem sequences nomeadas nesse schema**. Trocar para uma sequence sem migrar o banco quebraria o reaproveitamento exigido. O Oracle gerencia a sequence interna de cada coluna identity.
 
-As credenciais ficam somente em variáveis de ambiente. O driver `ojdbc17` vem do Maven. A URL padrão é a do Oracle FIAP, mas usuário e senha não têm valor padrão.
+As credenciais ficam somente em variáveis de ambiente. O driver `ojdbc17` vem do Maven. A URL padrão usa o SID `ORCL` informado no enunciado (`@host:porta:SID`); se o seu acesso usa um service name, configure `DB_URL` como `jdbc:oracle:thin:@//host:porta/servico`. Usuário e senha não têm valor padrão. O mapeamento usa os tipos JDBC `NUMERIC` para as colunas Oracle `NUMBER` e `CHAR` para as flags `S/N`, mantendo `ddl-auto=validate` compatível com o script existente.
 
 ## Arquitetura e regras
 
@@ -72,7 +72,9 @@ mvn test
 mvn package
 ```
 
-`MotivaApiTest` executa a API com `@SpringBootTest` + MockMvc e H2 em modo Oracle. O teste verifica respostas de CRUD, relatório, histórico, período, validação 400 e ausência 404. Veja [registro das requisições](docs/registro-requisicoes.md). Este ambiente não possui credenciais Oracle FIAP; a integração com o schema remoto deve ser executada com credenciais próprias.
+`MotivaApiTest` executa a API com `@SpringBootTest` + MockMvc e H2 em modo Oracle. O teste carrega **o próprio `sql/schema-oracle.sql` da Sprint 03** e inicia com `ddl-auto=validate`, para detectar divergências entre as entidades JPA e as colunas existentes. Verifica CRUD, consultas derivadas, relatório, histórico, período, validação 400 e ausência 404.
+
+No QA de 11/10/2026, `mvn clean verify` passou com **Java 17.0.20.1** (1 teste, 0 falhas/erros). A aplicação também subiu em HTTP local com esse schema em H2 e respondeu corretamente a **14 requisições** de CRUD, relatório e erros, registradas em [registro das requisições](docs/registro-requisicoes.md). O ambiente não tem `DB_USER`/`DB_PASSWORD` do Oracle FIAP; **a conexão e a execução contra o Oracle remoto ainda não foram verificadas**. Para essa validação final, configure as variáveis acima e execute `mvn spring-boot:run`; `ddl-auto=validate` impede alterações automáticas no schema.
 
 ## Perguntas de reflexão
 

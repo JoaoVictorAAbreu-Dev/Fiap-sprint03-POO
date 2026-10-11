@@ -1,12 +1,14 @@
 package br.com.motiva.model;
 
 import jakarta.persistence.*;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Entity @Table(name = "TB_INTERVENCAO_OPERACIONAL")
 public class IntervencaoEntity {
-    @Id @GeneratedValue(strategy = GenerationType.IDENTITY) @Column(name = "ID_INTERVENCAO") private Long id;
+    @Id @JdbcTypeCode(SqlTypes.NUMERIC) @GeneratedValue(strategy = GenerationType.IDENTITY) @Column(name = "ID_INTERVENCAO") private Long id;
     @ManyToOne(fetch = FetchType.LAZY, optional = false) @JoinColumn(name = "ID_TRECHO") private TrechoEntity trecho;
     @ManyToOne(fetch = FetchType.LAZY, optional = false) @JoinColumn(name = "ID_EQUIPE") private EquipeManutencao equipe;
     @Enumerated(EnumType.STRING) @Column(name = "TIPO_INTERVENCAO", nullable = false, length = 30) private TipoIntervencao tipoIntervencao;

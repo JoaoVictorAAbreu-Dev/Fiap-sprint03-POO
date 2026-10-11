@@ -1,14 +1,16 @@
 package br.com.motiva.model;
 
 import jakarta.persistence.*;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 @Entity @Table(name = "TB_EQUIPE_MANUTENCAO")
 public class EquipeManutencao {
-    @Id @GeneratedValue(strategy = GenerationType.IDENTITY) @Column(name = "ID_EQUIPE")
+    @Id @JdbcTypeCode(SqlTypes.NUMERIC) @GeneratedValue(strategy = GenerationType.IDENTITY) @Column(name = "ID_EQUIPE")
     private Long id;
     @Column(name = "NOME", nullable = false, length = 100) private String nome;
     @Column(name = "ESPECIALIDADE", nullable = false, length = 100) private String especialidade;
-    @Convert(converter = FlagConverter.class) @Column(name = "ATIVA", nullable = false, length = 1) private Boolean ativa;
+    @Convert(converter = FlagConverter.class) @JdbcTypeCode(SqlTypes.CHAR) @Column(name = "ATIVA", nullable = false, length = 1) private Boolean ativa;
     protected EquipeManutencao() {}
     public EquipeManutencao(String nome, String especialidade, boolean ativa) { this.nome = nome; this.especialidade = especialidade; this.ativa = ativa; }
     public Long getId() { return id; }
