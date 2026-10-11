@@ -7,7 +7,9 @@ import java.time.LocalDateTime;
 
 @Entity @Table(name = "TB_RELATORIO_PRIORIDADE")
 public class RelatorioEntity {
-    @Id @JdbcTypeCode(SqlTypes.NUMERIC) @GeneratedValue(strategy = GenerationType.IDENTITY) @Column(name = "ID_RELATORIO") private Long id;
+    @Id @JdbcTypeCode(SqlTypes.NUMERIC) @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "relatorio_seq")
+    @SequenceGenerator(name = "relatorio_seq", sequenceName = "SEQ_RELATORIO_PRIORIDADE", allocationSize = 1)
+    @Column(name = "ID_RELATORIO") private Long id;
     @Column(name = "DATA_GERACAO", nullable = false) private LocalDateTime dataGeracao;
     @JdbcTypeCode(SqlTypes.NUMERIC) @Column(name = "QT_NORMAL", nullable = false, precision = 10, scale = 0) private Integer qtNormal;
     @JdbcTypeCode(SqlTypes.NUMERIC) @Column(name = "QT_BAIXA", nullable = false, precision = 10, scale = 0) private Integer qtBaixa;

@@ -6,7 +6,9 @@ import org.hibernate.type.SqlTypes;
 
 @Entity @Table(name = "TB_EQUIPE_MANUTENCAO")
 public class EquipeManutencao {
-    @Id @JdbcTypeCode(SqlTypes.NUMERIC) @GeneratedValue(strategy = GenerationType.IDENTITY) @Column(name = "ID_EQUIPE")
+    @Id @JdbcTypeCode(SqlTypes.NUMERIC) @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "equipe_seq")
+    @SequenceGenerator(name = "equipe_seq", sequenceName = "SEQ_EQUIPE_MANUTENCAO", allocationSize = 1)
+    @Column(name = "ID_EQUIPE")
     private Long id;
     @Column(name = "NOME", nullable = false, length = 100) private String nome;
     @Column(name = "ESPECIALIDADE", nullable = false, length = 100) private String especialidade;
