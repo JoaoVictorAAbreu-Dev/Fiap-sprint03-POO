@@ -11,10 +11,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class RelatorioService {
-    private static final Map<TipoIntervencao,String> EQUIPES = Map.of(
-            TipoIntervencao.ROCADA_MECANIZADA,"Equipe Alpha",
-            TipoIntervencao.ROCADA_MANUAL,"Equipe Beta",
-            TipoIntervencao.PULVERIZACAO,"Equipe Preventiva");
     private final TrechoRepository trechos;
     private final EquipeRepository equipes;
     private final IntervencaoRepository intervencoes;
@@ -33,9 +29,11 @@ public class RelatorioService {
             ResultadoPrioridade resultado=motor.analisarTrecho(trecho.toDomain());
             contagem.merge(resultado.getNivelPrioridade(),1,Integer::sum);
             if (resultado.getTipoIntervencao()!=TipoIntervencao.SEM_INTERVENCAO) {
-                String nome=EQUIPES.get(resultado.getTipoIntervencao());
-                EquipeManutencao equipe=equipes.findByNomeIgnoreCaseAndAtiva(nome,true)
-                        .orElseThrow(() -> new IllegalArgumentException("Equipe obrigatoria " + nome + " nao encontrada ou inativa."));
+                String especialidade=resultado.getTipoIntervencao().getEspecialidadeEquipe();
+                EquipeManutencao equipe=equipes
+                        .findFirstByEspecialidadeIgnoreCaseAndAtivaOrderByIdAsc(especialidade,true)
+                        .orElseThrow(() -> new IllegalArgumentException(
+                                "Nenhuma equipe ativa com especialidade " + especialidade + "."));
                 intervencoes.save(new IntervencaoEntity(trecho,equipe,resultado.getTipoIntervencao(),resultado.getNivelPrioridade(),resultado.getAlturaProjetadaCm(),resultado.getJustificativa(),agora,"PLANEJADA"));
             }
         }

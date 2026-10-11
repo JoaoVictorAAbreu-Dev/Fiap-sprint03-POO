@@ -26,9 +26,10 @@ class MotivaApiTest {
     }
     private long id(MvcResult result) throws Exception { JsonNode node=json.readTree(result.getResponse().getContentAsString()); return node.get("id").asLong(); }
     @Test void crudERelatorioComCodigosHttp() throws Exception {
-        long alpha=id(criar("/api/equipes", "{\"nome\":\"Equipe Alpha\",\"especialidade\":\"Mecanizada\",\"ativa\":true}"));
-        long beta=id(criar("/api/equipes", "{\"nome\":\"Equipe Beta\",\"especialidade\":\"Manual\",\"ativa\":true}"));
-        long preventiva=id(criar("/api/equipes", "{\"nome\":\"Equipe Preventiva\",\"especialidade\":\"Pulverizacao\",\"ativa\":true}"));
+        long alpha=id(criar("/api/equipes", "{\"nome\":\"Equipe Alpha\",\"especialidade\":\"ROCADA MECANIZADA\",\"ativa\":true}"));
+        long beta=id(criar("/api/equipes", "{\"nome\":\"Equipe Beta\",\"especialidade\":\"ROCADA MANUAL\",\"ativa\":true}"));
+        long preventiva=id(criar("/api/equipes", "{\"nome\":\"Equipe Preventiva\",\"especialidade\":\"PULVERIZACAO PREVENTIVA\",\"ativa\":true}"));
+        mvc.perform(put("/api/equipes/"+alpha).contentType(MediaType.APPLICATION_JSON).content("{\"nome\":\"Equipe de Campo\",\"especialidade\":\"ROCADA MECANIZADA\",\"ativa\":true}")).andExpect(status().isOk()).andExpect(jsonPath("$.nome").value("Equipe de Campo"));
         String trecho="{\"quilometro\":10,\"sentido\":\"NORTE\",\"alturaVegetacaoCm\":100,\"tipoCrescimento\":\"NORMAL\",\"areaSensivel\":false,\"monitoradoIot\":false,\"codigoSensor\":null}";
         long trechoId=id(criar("/api/trechos", trecho));
         mvc.perform(get("/api/trechos/"+trechoId)).andExpect(status().isOk()).andExpect(jsonPath("$.quilometro").value(10));
@@ -41,10 +42,10 @@ class MotivaApiTest {
         mvc.perform(get("/api/relatorios")).andExpect(status().isOk()).andExpect(jsonPath("$[0].qtCritica").value(1));
         mvc.perform(get("/api/relatorios/periodo").param("inicio","2020-01-01T00:00:00").param("fim","2030-01-01T00:00:00")).andExpect(status().isOk()).andExpect(jsonPath("$[0].qtCritica").value(1));
         mvc.perform(get("/api/relatorios/periodo").param("inicio","2030-01-01T00:00:00").param("fim","2020-01-01T00:00:00")).andExpect(status().isBadRequest());
-        mvc.perform(put("/api/equipes/"+alpha).contentType(MediaType.APPLICATION_JSON).content("{\"nome\":\"Equipe Alpha\",\"especialidade\":\"Mecanizada\",\"ativa\":false}")).andExpect(status().isOk()).andExpect(jsonPath("$.ativa").value(false));
+        mvc.perform(put("/api/equipes/"+alpha).contentType(MediaType.APPLICATION_JSON).content("{\"nome\":\"Equipe de Campo\",\"especialidade\":\"ROCADA MECANIZADA\",\"ativa\":false}")).andExpect(status().isOk()).andExpect(jsonPath("$.ativa").value(false));
         mvc.perform(post("/api/relatorios")).andExpect(status().isBadRequest());
         mvc.perform(get("/api/relatorios")).andExpect(status().isOk()).andExpect(jsonPath("$.length()").value(1));
-        mvc.perform(put("/api/equipes/"+alpha).contentType(MediaType.APPLICATION_JSON).content("{\"nome\":\"Equipe Alpha\",\"especialidade\":\"Mecanizada\",\"ativa\":true}")).andExpect(status().isOk());
+        mvc.perform(put("/api/equipes/"+alpha).contentType(MediaType.APPLICATION_JSON).content("{\"nome\":\"Equipe de Campo\",\"especialidade\":\"ROCADA MECANIZADA\",\"ativa\":true}")).andExpect(status().isOk());
         MvcResult lista=mvc.perform(get("/api/intervencoes")).andExpect(status().isOk()).andReturn();
         JsonNode itens=json.readTree(lista.getResponse().getContentAsString());
         assertThat(itens).hasSize(1);

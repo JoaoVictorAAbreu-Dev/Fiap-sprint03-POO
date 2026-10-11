@@ -34,7 +34,7 @@ As credenciais ficam somente em variáveis de ambiente. O driver `ojdbc17` vem d
 - `service`: validações, CRUD e `MotorRegrasPrioridade`. A geração de relatório e intervenções ocorre numa transação.
 - `controller`: rotas HTTP e códigos de resposta. Requisições usam DTOs com Bean Validation; erros comuns são tratados por `@ControllerAdvice`.
 
-O motor usa a **altura projetada** (`altura atual × fator de crescimento`, acrescida de 10 cm para área sensível): abaixo de 40 cm `NORMAL`; de 40 a 59,99 cm `MEDIA`/pulverização; de 60 a 89,99 cm `ALTA`/roçada manual; a partir de 90 cm `CRITICA`/roçada mecanizada. `BAIXA` permanece no histórico por compatibilidade com a Sprint 03. Intervenções geradas exigem equipes ativas com os nomes `Equipe Alpha`, `Equipe Beta` e `Equipe Preventiva`, conforme o tipo; se faltar uma equipe necessária, a transação é desfeita.
+O motor usa a **altura projetada** (`altura atual × fator de crescimento`, acrescida de 10 cm para área sensível): abaixo de 40 cm `NORMAL`; de 40 a 59,99 cm `MEDIA`/pulverização; de 60 a 89,99 cm `ALTA`/roçada manual; a partir de 90 cm `CRITICA`/roçada mecanizada. `BAIXA` permanece no histórico por compatibilidade com a Sprint 03. Intervenções geradas procuram uma equipe ativa pela coluna `ESPECIALIDADE`, independentemente do nome. Os valores usados pelo motor são `PULVERIZACAO PREVENTIVA`, `ROCADA MANUAL` e `ROCADA MECANIZADA` (sem distinção entre maiúsculas e minúsculas). É possível cadastrar ou renomear equipes via API sem alterar o código; se houver mais de uma equipe ativa na mesma especialidade, a de menor ID é escolhida. Se faltar a especialidade necessária, a transação é desfeita. A carga inicial também vincula as intervenções pela especialidade.
 
 ## Endpoints
 
@@ -54,7 +54,7 @@ Dados inválidos retornam 400. Violações de unicidade ou outras restrições d
 ## Exemplos cURL
 
 ```bash
-curl -i -X POST http://localhost:8080/api/equipes -H 'Content-Type: application/json' -d '{"nome":"Equipe Alpha","especialidade":"Mecanizada","ativa":true}'
+curl -i -X POST http://localhost:8080/api/equipes -H 'Content-Type: application/json' -d '{"nome":"Equipe de Campo","especialidade":"ROCADA MECANIZADA","ativa":true}'
 curl -i -X POST http://localhost:8080/api/trechos -H 'Content-Type: application/json' -d '{"quilometro":10,"sentido":"NORTE","alturaVegetacaoCm":100,"tipoCrescimento":"NORMAL","areaSensivel":false,"monitoradoIot":false,"codigoSensor":null}'
 curl -i http://localhost:8080/api/trechos/1
 curl -i -X PUT http://localhost:8080/api/trechos/1 -H 'Content-Type: application/json' -d '{"quilometro":11,"sentido":"NORTE","alturaVegetacaoCm":100,"tipoCrescimento":"NORMAL","areaSensivel":false,"monitoradoIot":false,"codigoSensor":null}'
@@ -63,7 +63,7 @@ curl -i 'http://localhost:8080/api/relatorios/periodo?inicio=2026-01-01T00:00:00
 curl -i -X DELETE http://localhost:8080/api/trechos/1
 ```
 
-No exemplo de relatório, cadastre as equipes necessárias antes de chamar `POST /api/relatorios`. O ID real pode diferir de `1`.
+No exemplo de relatório, cadastre uma equipe ativa para cada especialidade exigida pelos trechos antes de chamar `POST /api/relatorios`. O nome da equipe é livre. O ID real pode diferir de `1`.
 
 ## Testes e registro de requisições
 
@@ -72,9 +72,9 @@ mvn test
 mvn package
 ```
 
-`MotivaApiTest` executa a API com `@SpringBootTest` + MockMvc e H2 em modo Oracle. O teste carrega **o próprio `sql/schema-oracle.sql` da Sprint 03** e inicia com `ddl-auto=validate`, para detectar divergências entre as entidades JPA e as colunas existentes. Verifica CRUD, consultas derivadas, relatório, histórico, período, validação 400 e ausência 404.
+`MotivaApiTest` executa a API com `@SpringBootTest` + MockMvc e H2 em modo Oracle. O teste carrega **o próprio `sql/schema-oracle.sql` da Sprint 03** e inicia com `ddl-auto=validate`, para detectar divergências entre as entidades JPA e as colunas existentes. Verifica CRUD, consultas derivadas, relatório, histórico, período, validação 400 e ausência 404. `RelatorioEspecialidadeTest` verifica as três especialidades, nomes livres e seleção determinística quando há mais de uma equipe ativa com a mesma especialidade.
 
-No QA de 11/10/2026, `mvn clean verify` passou com **Java 17.0.20.1** (1 teste, 0 falhas/erros). A aplicação também subiu em HTTP local com esse schema em H2 e respondeu corretamente a **14 requisições** de CRUD, relatório e erros, registradas em [registro das requisições](docs/registro-requisicoes.md). O ambiente não tem `DB_USER`/`DB_PASSWORD` do Oracle FIAP; **a conexão e a execução contra o Oracle remoto ainda não foram verificadas**. Para essa validação final, configure as variáveis acima e execute `mvn spring-boot:run`; `ddl-auto=validate` impede alterações automáticas no schema.
+No QA de 11/10/2026, `mvn clean verify` passou com **Java 17.0.20.1** (2 testes, 0 falhas/erros). A aplicação também subiu em HTTP local com esse schema em H2 e respondeu corretamente a **14 requisições** de CRUD, relatório e erros, registradas em [registro das requisições](docs/registro-requisicoes.md). O ambiente não tem `DB_USER`/`DB_PASSWORD` do Oracle FIAP; **a conexão e a execução contra o Oracle remoto ainda não foram verificadas**. Para essa validação final, configure as variáveis acima e execute `mvn spring-boot:run`; `ddl-auto=validate` impede alterações automáticas no schema.
 
 ## Perguntas de reflexão
 
